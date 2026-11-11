@@ -6,7 +6,6 @@ xt\_tls is an extension for netfilter/IPtables that allows you to filter traffic
 - Filter TLS traffic based on the SNI extension
 
 ## Todo
-- Add more advanced matching features (i.e. wildcard matching)
 - Add support for matching on the server certificate
 
 ## Manual Installation
@@ -22,6 +21,15 @@ git clone https://github.com/Lochnair/xt_tls.git
 cd xt_tls
 make
 sudo make install
+```
+
+### Cross build
+
+```bash
+# add the toolchain to PATH
+export PATH=/path/to/toolchain/bin:$PATH
+
+make ARCH=arm64 KERNELRELEASE=5.10.110 CROSS_COMPILE=aarch64-linux- KERNELDIR=/path/to/kernel_src
 ```
 
 ## [DKMS](https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) Installation
@@ -83,19 +91,22 @@ cat /proc/net/xt_tls/hostset/blacklist
  ...
 ```
 
-You can not use wildcards with the hostsets. But you can use suffix matching instead. By default the host name set should match some hostset element exactly the entire rule also to match. But with "--tls-suffix" option it is enough when any host name suffix to match any hostset element. For example the following rule
+An entry prefixed with "*." also matches every subdomain. For example, with
 
 ```bash
-sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset blacklist --tls-suffix -j DROP
+sudo echo +*.facebook.com > /proc/net/xt_tls/hostset/blacklist
 ```
-with the same hostset:
+the hostset matches "facebook.com", "www.facebook.com", "anything.facebook.com" etc., while a plain "facebook.com" entry matches only that exact name.
+
+An entry can also be limited to a port or a port range by appending the protocol and port(s) after a comma:
 
 ```bash
-sudo echo +facebook.com > /proc/net/xt_tls/hostset/blacklist
-sudo echo +googlevideo.com > /proc/net/xt_tls/hostset/blacklist
-...
+sudo echo +www.google.com,tcp:440-443 > /proc/net/xt_tls/hostset/blacklist
+sudo echo +*.google.com,tcp:22 > /proc/net/xt_tls/hostset/blacklist
 ```
-will match "facebook.com", "facebook.com", "anything.facebook.com" etc.
+An entry without a port spec matches any port. Only `tcp` takes effect in this module.
+
+Add `--log-tls` to a rule to log the matched server name to the kernel log.
 
 ## Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
