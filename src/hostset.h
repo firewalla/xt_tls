@@ -3,17 +3,36 @@
  * Host sets are implemented as simple binary trees of the host_set_elem
  */
 
+#ifndef _HOSTSET_H
+#define _HOSTSET_H
+
 #include <linux/rbtree.h>
-#include <net/net_namespace.h>
+#include "xt_tls.h"
 
 #ifndef CONFIG_PROC_FS
 #error "XT_TLS requires proc filesystem support enabled in the kernel"
 #endif
 
+enum host_protocol {
+    NONE,
+    TCP,
+    UDP
+};
+
+struct port_desc {
+    enum host_protocol protocol;
+    unsigned short start;
+    unsigned short end;
+    struct port_desc *next;
+};
+
 // Host set element holding a single host name
 struct host_set_elem {
     struct rb_node rbnode;
     __u64 hit_count;
+    struct port_desc *ports;   // a linked list of matching port range description. If set to NULL, this entry will match any port.
+    bool match_all_ports;
+    bool suffix_matching;
     char name[]; //the host name (reversed)
 };//host_set_elem
 
@@ -29,7 +48,7 @@ struct host_set {
 
 
 // Initialize a host set
-int hs_init(struct net *net, struct host_set *hs, const char *name);
+int hs_init(struct host_set *hs, const char *name);
 // Increment the usage count for the host set
 static inline void hs_hold(struct host_set *hs) { hs->refcount++; }
 // Free a host set entry (taking into account its refcount)
@@ -41,4 +60,8 @@ static inline bool hs_is_free(struct host_set *hs) { return hs->refcount == 0; }
 // Zeroize a host set entry (mark it unused)
 static inline void hs_zeroize(struct host_set *hs) { hs->refcount = 0; }
 // Lookup the host set for the specifed host name
-bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching);
+bool hs_lookup(struct host_set *hs, const char *hostname, enum host_protocol protocol,
+               unsigned short port, int record_hit);
+
+
+#endif // _HOSTSET_H

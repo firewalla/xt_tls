@@ -1,5 +1,5 @@
-#ifndef XT_TLS_COMPAT_H
-#define XT_TLS_COMPAT_H
+#ifndef _COMPAT_H_
+#define _COMPAT_H_
 
 #include <linux/version.h>
 /*
@@ -74,7 +74,7 @@
 				break;
 			case '\\':
 				d = *pat++;
-				goto literal;
+				/*FALLTHROUGH*/
 			default:	/* Literal character */
 	literal:
 				if (c == d) {
@@ -94,21 +94,4 @@
 	}
 #endif
 
-#ifdef RHEL_MAJOR
-#if RHEL_MAJOR == 7
-#define ISRHEL7
-#elif RHEL_MAJOR == 8
-#define ISRHEL8
-#elif RHEL_MAJOR == 9
-#define ISRHEL9
-#endif
-#endif
-
-/*
- * In 5.17 PDA_DATA was renamed to pda_data
- */
-#if KERNEL_VERSION(5, 17, 0) > LINUX_VERSION_CODE && !defined(ISRHEL9)
-#define pde_data(i) PDE_DATA(i)
-#endif
-
-#endif
+#endif /* _COMPAT_H_ */
